@@ -1,0 +1,8 @@
+# One game name per line. Lines starting with # are ignored.
+# Use this when the source is NOT a Humble Bundle page
+# (Fanatical, personal wishlist, chat list, etc.).
+
+Botany Manor
+Biped
+Hades
+Stardew Valley

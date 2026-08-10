@@ -1,0 +1,27 @@
+{
+  "source": "humblebundle",
+  "source_url": "https://www.humblebundle.com/games/short-games-showcase-bundle",
+  "name": "Short Games Showcase Bundle",
+  "machine_name": "shortgamesshowcasebundle_bundle",
+  "end_time_utc": "2026-08-29T04:00:00",
+  "key_expire_hint": "February 28th, 2027",
+  "currency": "USD",
+  "short_blurb": "A showcase of short, great games",
+  "games_count": 14,
+  "games": [
+    {"machine_name": "botanymanor", "hb_name": "Botany Manor", "name": "Botany Manor"},
+    {"machine_name": "biped", "hb_name": "Biped", "name": "Biped"},
+    {"machine_name": "monsterprom2_monstercamp", "hb_name": "Monster Prom 2: Monster Camp", "name": "Monster Prom 2: Monster Camp"},
+    {"machine_name": "anomalyagent", "hb_name": "Anomoly Agent", "name": "Anomoly Agent"},
+    {"machine_name": "nanoapostle", "hb_name": "NanoApostle", "name": "NanoApostle"},
+    {"machine_name": "Knightica", "hb_name": "Knightica", "name": "Knightica"},
+    {"machine_name": "thedarkqueenofmortholme", "hb_name": "The Dark Queen of Mortholme", "name": "The Dark Queen of Mortholme"},
+    {"machine_name": "fillupthehole", "hb_name": "Fill Up The Hole", "name": "Fill Up The Hole"},
+    {"machine_name": "oldmansjourney", "hb_name": "Old Man's Journey", "name": "Old Man's Journey"},
+    {"machine_name": "teacup", "hb_name": "Teacup", "name": "Teacup"},
+    {"machine_name": "ajugglerstale", "hb_name": "A Juggler's Tale", "name": "A Juggler's Tale"},
+    {"machine_name": "scannersombre", "hb_name": "Scanner Sombre", "name": "Scanner Sombre"},
+    {"machine_name": "astroprospector", "hb_name": "Astro Prospector", "name": "Astro Prospector"},
+    {"machine_name": "atinystickertale", "hb_name": "A Tiny Sticker Tale", "name": "A Tiny Sticker Tale"}
+  ]
+}

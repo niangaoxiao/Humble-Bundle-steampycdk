@@ -1,0 +1,38 @@
+# Secrets & local auth
+.env
+.env.*
+*.token
+*accessToken*
+steampy_pw_profile/
+**/steampy_pw_profile/
+
+# Runtime outputs (may contain your paid amounts / timestamps)
+output/
+**/report_*.json
+**/report_*.md
+**/favorites_result.json
+**/debug_fav_*.png
+examples/last_bundle.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.env/
+*.egg-info/
+dist/
+build/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Personal spreadsheets / audits (never commit)
+*.xlsx
+price_audit_*.json
+price_truth.json
