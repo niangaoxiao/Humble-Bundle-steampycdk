@@ -29,8 +29,24 @@ Public technical notes only. No accounts, tokens, or personal purchase history.
 
 - Games come from embedded page JSON (`userOptions` / `bundleData`), not from the visual DOM alone.  
 - HB HTML changes will break `extract_hb_bundle.py`.  
-- Pay-what-you-want amount is **never** on the public page for “what you paid” → user must pass `--paid`.
+- **Tier prices** live in `tier_pricing_data.*.price|money` (usually USD).  
+- **CNY display** uses top-level `exchangeRates["CNY|decimal"]` (CNY per 1 USD).  
+  Example: full tier $12 × 6.75… ≈ **¥81** (matches on-site RMB), not a fixed 7.2 guess.  
+- Classic bundles often **omit** `start_time`; `end_time|datetime` is reliable.  
+- CDK expire text is usually in `description` (“Keys expire… redeem before …”).  
+- User can still override with `--paid` if they paid a custom PWYW amount.
 
+## Humble Choice (monthly)
+
+- `/membership/home` redirects to **login** when logged out.  
+- Public marketing: `/membership` → `webpack-choice-marketing-data`  
+  (`activeContentMachineName`, `navbarOptions.activeContentEndDate|datetime`).  
+- Month page: `/membership/august-2026` → `webpack-monthly-product-data`  
+  - Games: `contentChoiceOptions.contentChoiceData.game_data` + `display_order`  
+  - Start: `payEarlyOptions.activeContentStart|datetime`  
+  - Per-key expire: `tpkds[].expiration_date|datetime`  
+  - Sub price: `baseSubscriptionPrice|money` × same CNY rate  
+- Skip non-games (e.g. `ignplus_choicecoupon_*`).
 ## Matching
 
 - Prefer exact English name; keep a small alias / AppID table for CN titles and HB typos (`Anomoly Agent`).  

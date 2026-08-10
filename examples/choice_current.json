@@ -1,0 +1,117 @@
+{
+  "source": "humblebundle",
+  "product_type": "choice",
+  "source_url": "https://www.humblebundle.com/membership/august-2026",
+  "name": "August 2026 Humble Choice",
+  "machine_name": "august_2026_choice",
+  "product_url_path": "august-2026",
+  "start_time_utc": "2026-08-04T17:00:00",
+  "end_time_utc": "2026-09-01T17:00:00",
+  "key_expire_hint": null,
+  "key_expire_utc": "2027-03-01T18:00:00",
+  "currency_page": "USD",
+  "exchange_rate_cny_per_usd": 6.74763762462072,
+  "tiers": [
+    {
+      "id": "subscription",
+      "header": "Humble Choice subscription (month-to-month)",
+      "identifier": "subscription",
+      "is_initial": true,
+      "price_usd": 14.99,
+      "price_amount": 14.99,
+      "price_currency": "USD",
+      "price_cny": 101.15,
+      "games_count": 8
+    }
+  ],
+  "full_tier_id": "subscription",
+  "full_tier_price_usd": 14.99,
+  "full_tier_price_cny": 101.15,
+  "suggested_paid_cny": 101.15,
+  "short_blurb": "Humble Choice monthly",
+  "games_count": 8,
+  "games": [
+    {
+      "machine_name": "likeadragon_infinitewealth",
+      "hb_name": "Like a Dragon: Infinite Wealth",
+      "name": "Like a Dragon: Infinite Wealth",
+      "search_queries": [
+        "Like a Dragon: Infinite Wealth"
+      ],
+      "key_expire_utc": "2027-03-01T18:00:00",
+      "msrp_usd": 69.99
+    },
+    {
+      "machine_name": "deadcells",
+      "hb_name": "Dead Cells + The Bad Seed DLC",
+      "name": "Dead Cells + The Bad Seed DLC",
+      "search_queries": [
+        "Dead Cells + The Bad Seed DLC"
+      ],
+      "key_expire_utc": "2027-03-01T18:00:00",
+      "msrp_usd": 29.98
+    },
+    {
+      "machine_name": "teenagemutantninjaturtles_shreddersrevenge",
+      "hb_name": "Teenage Mutant Ninja Turtles: Shredder's Revenge - Ultimate Edition",
+      "name": "Teenage Mutant Ninja Turtles: Shredder's Revenge - Ultimate Edition",
+      "search_queries": [
+        "Teenage Mutant Ninja Turtles: Shredder's Revenge - Ultimate Edition"
+      ],
+      "key_expire_utc": "2027-03-01T18:00:00",
+      "msrp_usd": 36.97
+    },
+    {
+      "machine_name": "decktamer",
+      "hb_name": "Decktamer",
+      "name": "Decktamer",
+      "search_queries": [
+        "Decktamer"
+      ],
+      "key_expire_utc": "2027-03-01T18:00:00",
+      "msrp_usd": 15.99
+    },
+    {
+      "machine_name": "conquestdark",
+      "hb_name": "Conquest Dark",
+      "name": "Conquest Dark",
+      "search_queries": [
+        "Conquest Dark"
+      ],
+      "key_expire_utc": "2027-03-01T18:00:00",
+      "msrp_usd": 9.99
+    },
+    {
+      "machine_name": "gatekeeper",
+      "hb_name": "Gatekeeper",
+      "name": "Gatekeeper",
+      "search_queries": [
+        "Gatekeeper"
+      ],
+      "key_expire_utc": "2027-03-01T18:00:00",
+      "msrp_usd": 14.99
+    },
+    {
+      "machine_name": "pileup",
+      "hb_name": "Pile Up!",
+      "name": "Pile Up!",
+      "search_queries": [
+        "Pile Up!"
+      ],
+      "key_expire_utc": "2027-03-01T18:00:00",
+      "msrp_usd": 9.99
+    },
+    {
+      "machine_name": "darkenvoy",
+      "hb_name": "Dark Envoy",
+      "name": "Dark Envoy",
+      "search_queries": [
+        "Dark Envoy"
+      ],
+      "key_expire_utc": "2027-03-01T18:00:00",
+      "msrp_usd": 29.99
+    }
+  ],
+  "product_is_choiceless": true,
+  "resolved_from": "https://www.humblebundle.com/membership/home"
+}

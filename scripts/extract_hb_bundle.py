@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""CLI entry: extract Humble Bundle game list."""
+"""CLI entry: extract Humble Bundle / Choice game list."""
 from __future__ import annotations
 
 import sys

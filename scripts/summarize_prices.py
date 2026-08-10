@@ -1,23 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-Compare a purchase cost vs SteamPY CDKey lowest listing prices.
+Compare HB / Choice purchase cost (CNY) vs SteamPY CDKey lowest listings.
 
-Inputs (first positional argument):
-  - Humble Bundle URL          (auto-extract games)
-  - JSON from extract / manual
-  - Text file: one game name per line
+Inputs:
+  - Humble Bundle games URL
+  - Humble Choice: /membership, /membership/home, /membership/august-2026
+  - JSON / text game list
 
 Usage:
-  python scripts/summarize_prices.py "https://www.humblebundle.com/games/xxx" --paid 86
-  python scripts/summarize_prices.py examples/short_games_showcase_bundle.json --paid 86
-  python scripts/summarize_prices.py examples/games_list.example.txt --paid 100 --title "My list"
-  python scripts/summarize_prices.py games.json --paid 50 --token "$STEAMPY_ACCESS_TOKEN"
-
-Token:
-  Login at https://steampy.com , open DevTools → Application → Local Storage → accessToken
-  Then:  set STEAMPY_ACCESS_TOKEN=...   (do NOT commit the token)
-
-Without token: still writes a report shell; price columns stay empty.
+  python scripts/summarize_prices.py "https://www.humblebundle.com/games/short-games-showcase-bundle"
+  python scripts/summarize_prices.py "https://www.humblebundle.com/membership/home"
+  python scripts/summarize_prices.py URL --paid 81.03   # override auto CNY
+  python scripts/summarize_prices.py URL --token $STEAMPY_ACCESS_TOKEN
 """
 from __future__ import annotations
 
@@ -59,7 +53,6 @@ def api_get(path: str, params: dict[str, Any], token: str) -> dict[str, Any]:
 
 
 def score_candidate(item: dict[str, Any], hb_name: str, appid: int | None) -> int:
-    """Name / AppID scoring to avoid Biped → Bipedal Chickens style mismatches."""
     name = (item.get("gameName") or "").strip()
     cn = (item.get("gameNameCn") or "").strip()
     aid = str(item.get("appId") or "")
@@ -100,7 +93,6 @@ def pick_from_content(
 def fetch_price_for_game(
     name: str, token: str, appid: int | None = None
 ) -> dict[str, Any]:
-    """CDKey market: keyByName → listSale min keyPrice (actual listing low)."""
     row: dict[str, Any] = {
         "query": name,
         "min_price": None,
@@ -163,12 +155,9 @@ def fetch_price_for_game(
         )
         return row
 
-    # Listing low ≠ summary keyPrice field (that one can be wrong / stale)
     row["matched_name"] = hit.get("gameName")
     row["matched_appId"] = hit.get("appId")
     row["gameId"] = hit.get("id")
-    row["api"] = "/steamKeySale/listSale"
-    row["oriPrice"] = hit.get("oriPrice")
     try:
         d2 = api_get(
             "/steamKeySale/listSale",
@@ -197,9 +186,26 @@ def fetch_price_for_game(
         return row
 
 
+def resolve_paid(bundle: dict[str, Any], paid_arg: float | None) -> tuple[float, str]:
+    """Return (paid_cny, how). Prefer --paid; else HB suggested full-tier / sub CNY."""
+    if paid_arg is not None:
+        return float(paid_arg), "user --paid"
+    suggested = bundle.get("suggested_paid_cny")
+    if suggested is not None:
+        kind = bundle.get("product_type") or "bundle"
+        if kind == "choice":
+            return float(suggested), "HB Choice subscription × page CNY rate"
+        return float(suggested), "HB full-tier price × page CNY rate"
+    raise SystemExit(
+        "No --paid and no suggested_paid_cny from the page. "
+        "Pass --paid <CNY amount>."
+    )
+
+
 def build_report(
     bundle: dict[str, Any],
     paid: float,
+    paid_source: str,
     fee: float,
     token: str,
 ) -> dict[str, Any]:
@@ -243,6 +249,7 @@ def build_report(
                 "after_fee": after,
                 "status": price_info.get("status"),
                 "detail": price_info.get("raw_message"),
+                "key_expire_utc": g.get("key_expire_utc"),
             }
         )
 
@@ -250,10 +257,21 @@ def build_report(
     report = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "bundle_name": bundle.get("name"),
+        "product_type": bundle.get("product_type"),
         "source": bundle.get("source"),
         "bundle_url": bundle.get("source_url"),
+        "resolved_from": bundle.get("resolved_from"),
+        "start_time_utc": bundle.get("start_time_utc"),
+        "end_time_utc": bundle.get("end_time_utc"),
+        "key_expire_hint": bundle.get("key_expire_hint"),
+        "key_expire_utc": bundle.get("key_expire_utc"),
+        "exchange_rate_cny_per_usd": bundle.get("exchange_rate_cny_per_usd"),
+        "tiers": bundle.get("tiers"),
+        "full_tier_price_usd": bundle.get("full_tier_price_usd"),
+        "full_tier_price_cny": bundle.get("full_tier_price_cny"),
         "paid": paid,
-        "hb_paid": paid,  # backward-compatible key
+        "paid_source": paid_source,
+        "hb_paid": paid,
         "fee_rate": fee,
         "game_count": len(games),
         "priced_count": priced_n,
@@ -262,58 +280,109 @@ def build_report(
         "delta_after_fee_minus_paid": round(after_sum - paid, 2) if priced_n else None,
         "games": lines,
         "notes": [
-            "Paid amount is user input, not scraped from the store page.",
-            f"After-fee formula: sum(min listing) × (1 - {fee}).",
-            "Without STEAMPY_ACCESS_TOKEN, prices stay empty.",
-            "Min price = lowest seller CDKey listing (listSale.keyPrice), not summary cards.",
+            "HB 买价默认用页面档位美元价 × 页面 exchangeRates.CNY（与站内人民币展示一致）。",
+            "可用 --paid 覆盖为你的真实付款。",
+            f"扣费公式: 在售最低合计 × (1 - {fee})。",
+            "在售最低 = SteamPY 卖家挂单 listSale.keyPrice 最低值。",
+            "无 STEAMPY_ACCESS_TOKEN 时价格为空。",
         ],
     }
     return report
 
 
+def fmt_time(v: Any) -> str:
+    if not v:
+        return "-"
+    return str(v)
+
+
 def to_markdown(report: dict[str, Any]) -> str:
     paid = report.get("paid") if report.get("paid") is not None else report.get("hb_paid")
+    rate = report.get("exchange_rate_cny_per_usd")
+    rate_s = f"{rate:.6f}" if isinstance(rate, float) else (str(rate) if rate else "-")
     lines = [
-        f"# {report.get('bundle_name') or 'Game list'} · SteamPY lowest listings",
+        f"# {report.get('bundle_name') or 'Game list'} · SteamPY 在售最低",
         "",
-        f"- Generated (UTC): {report.get('generated_at')}",
-        f"- Source: {report.get('bundle_url') or report.get('source') or '-'}",
-        f"- Rule: **lowest = min seller CDKey unit price** (listing table)",
-        f"- **You paid**: ¥{paid}",
-        f"- Games: {report.get('game_count')} (priced {report.get('priced_count')})",
+        f"- 生成时间 (UTC): {report.get('generated_at')}",
+        f"- 类型: {report.get('product_type') or '-'}",
+        f"- 来源: {report.get('bundle_url') or report.get('source') or '-'}",
+    ]
+    if report.get("resolved_from"):
+        lines.append(f"- 由链接解析: {report.get('resolved_from')}")
+    lines += [
+        f"- **发售/上架 (UTC)**: {fmt_time(report.get('start_time_utc'))}",
+        f"- **结束 (UTC)**: {fmt_time(report.get('end_time_utc'))}",
+        f"- **CDK 过期**: {fmt_time(report.get('key_expire_utc') or report.get('key_expire_hint'))}",
+        f"- HB 汇率 CNY/USD: {rate_s}",
+        f"- 规则: 在售最低 = 卖家 CDkey 挂单最低价",
+        f"- **HB 买价 (CNY)**: **¥{paid}** （{report.get('paid_source') or '-'}）",
+    ]
+    if report.get("full_tier_price_usd") is not None:
+        lines.append(
+            f"- 页面全档/订阅: "
+            f"USD {report.get('full_tier_price_usd')} → ¥{report.get('full_tier_price_cny')}"
+        )
+    lines += [
+        f"- 游戏数: {report.get('game_count')}（有价 {report.get('priced_count')}）",
         "",
-        "## Totals",
+    ]
+
+    tiers = report.get("tiers") or []
+    if tiers:
+        lines += [
+            "## HB 档位价格（页面汇率）",
+            "",
+            "| 档位 | 标价 | 人民币 | 说明 |",
+            "|------|------|--------|------|",
+        ]
+        for t in tiers:
+            usd = t.get("price_usd")
+            if usd is None:
+                usd = t.get("price_amount")
+            cur = t.get("price_currency") or "USD"
+            cny = t.get("price_cny")
+            lines.append(
+                f"| {t.get('id')} | {cur} {usd} | ¥{cny} | "
+                f"{(t.get('header') or '').replace('|', '/')} |"
+            )
+        lines.append("")
+
+    lines += [
+        "## 合计",
         "",
-        "| Item | Amount |",
-        "|------|--------|",
-        f"| **Sum of lowest listings** | **¥{report.get('sum_min_price')}** |",
-        f"| **After {float(report.get('fee_rate') or 0)*100:.0f}% fee** | **¥{report.get('sum_after_fee')}** |",
+        "| 项目 | 金额 |",
+        "|------|------|",
+        f"| **HB 买价** | **¥{paid}** |",
+        f"| **SteamPY 在售最低合计** | **¥{report.get('sum_min_price')}** |",
+        f"| **扣 {float(report.get('fee_rate') or 0)*100:.0f}% 后** | **¥{report.get('sum_after_fee')}** |",
     ]
     delta = report.get("delta_after_fee_minus_paid")
-    if delta is None:
-        delta = report.get("delta_after_fee_minus_hb")
     if delta is not None:
         sign = "+" if delta >= 0 else ""
-        lines.append(f"| After fee − paid | **{sign}¥{delta}** |")
+        lines.append(f"| 扣费后 − HB 买价 | **{sign}¥{delta}** |")
     lines += [
         "",
-        "## Detail (per-game fee not listed)",
+        "## 明细",
         "",
-        "| # | Game | Matched | AppID | Lowest |",
-        "|---|------|---------|-------|--------|",
+        "| # | 游戏 | 匹配 | AppID | 在售最低 | CDK过期 |",
+        "|---|------|------|-------|----------|--------|",
     ]
     for i, g in enumerate(report.get("games") or [], 1):
         mp = g.get("min_price")
+        exp = g.get("key_expire_utc") or report.get("key_expire_utc") or report.get("key_expire_hint") or "-"
+        if isinstance(exp, str) and "T" in exp:
+            exp = exp.split("T")[0]
         lines.append(
-            "| {i} | {name} | {m} | {app} | {mp} |".format(
+            "| {i} | {name} | {m} | {app} | {mp} | {exp} |".format(
                 i=i,
                 name=(g.get("name") or g.get("hb_name") or "").replace("|", "/"),
                 m=(g.get("matched_name") or "-").replace("|", "/"),
                 app=g.get("matched_appId") or g.get("steam_appid") or "-",
                 mp=f"¥{mp}" if mp is not None else "-",
+                exp=str(exp).replace("|", "/"),
             )
         )
-    lines += ["", "## Notes", ""]
+    lines += ["", "## 备注", ""]
     for n in report.get("notes") or []:
         lines.append(f"- {n}")
     lines.append("")
@@ -322,39 +391,39 @@ def to_markdown(report: dict[str, Any]) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser(
-        description="SteamPY lowest CDKey prices for a HB URL, JSON, or name list"
+        description="HB/Choice vs SteamPY lowest CDKey prices (CNY)"
     )
     ap.add_argument(
         "source",
-        help="Humble Bundle URL, or path to .json / .txt game list",
+        help="HB games URL, Choice/membership URL, or .json/.txt list",
     )
     ap.add_argument(
         "--paid",
         "--hb-paid",
         dest="paid",
         type=float,
-        required=True,
-        help="What you actually paid (CNY). Not scraped from the page.",
+        default=None,
+        help="你实际付款（人民币）。默认用页面全档/月费 × HB 汇率转 CNY",
     )
-    ap.add_argument("--fee", type=float, default=0.03, help="Fee rate, default 0.03")
+    ap.add_argument("--fee", type=float, default=0.03, help="手续费比例，默认 0.03")
     ap.add_argument(
         "--token",
         default=os.environ.get("STEAMPY_ACCESS_TOKEN", ""),
-        help="SteamPY accessToken; or env STEAMPY_ACCESS_TOKEN",
+        help="SteamPY accessToken；或环境变量 STEAMPY_ACCESS_TOKEN",
     )
-    ap.add_argument("--title", default=None, help="Override list title")
+    ap.add_argument("--title", default=None, help="覆盖列表标题")
     ap.add_argument(
         "-o",
         "--out-dir",
         type=Path,
         default=ROOT / "output",
-        help="Report output directory (default: ./output)",
+        help="报告输出目录",
     )
     ap.add_argument(
         "--save-bundle",
         type=Path,
         default=None,
-        help="Also write normalized game list JSON here",
+        help="同时写出规范化游戏列表 JSON",
     )
     args = ap.parse_args()
 
@@ -364,6 +433,8 @@ def main() -> int:
         print(f"Failed to load source: {e}", file=sys.stderr)
         return 1
 
+    paid, paid_source = resolve_paid(bundle, args.paid)
+
     if args.save_bundle:
         args.save_bundle.parent.mkdir(parents=True, exist_ok=True)
         args.save_bundle.write_text(
@@ -372,7 +443,11 @@ def main() -> int:
         print(f"Saved game list: {args.save_bundle}")
 
     report = build_report(
-        bundle, paid=args.paid, fee=args.fee, token=args.token or ""
+        bundle,
+        paid=paid,
+        paid_source=paid_source,
+        fee=args.fee,
+        token=args.token or "",
     )
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
@@ -391,8 +466,8 @@ def main() -> int:
     print(f"\nWrote:\n  {json_path}\n  {md_path}")
     if not args.token:
         print(
-            "\nHint: no token → empty prices. Login at steampy.com, copy localStorage "
-            "accessToken, set STEAMPY_ACCESS_TOKEN, re-run.",
+            "\nHint: no token → empty SteamPY prices. "
+            "Set STEAMPY_ACCESS_TOKEN after logging into steampy.com.",
             file=sys.stderr,
         )
     return 0
